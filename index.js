@@ -1,46 +1,38 @@
 const express = require('express');
+const conectaBanco = require('./db');
+const Livro = require('./Livro');
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-// Dados simulados (em memória)
-let livros = [
-  { id: 1, titulo: "O Senhor dos Anéis", autor: "J.R.R. Tolkien" },
-  { id: 2, titulo: "1984", autor: "George Orwell" }
-];
+conectaBanco();
 
-// Rotas básicas
-app.get('/livros', (req, res) => {
+// GET
+app.get('/livros', async (req, res) => {
+  const livros = await Livro.find();
   res.json(livros);
 });
 
-app.post('/livros', (req, res) => {
-  const novoLivro = req.body;
-  novoLivro.id = livros.length + 1;
-  livros.push(novoLivro);
-  res.status(201).json(novoLivro);
+// POST
+app.post('/livros', async (req, res) => {
+  const novoLivro = new Livro(req.body);
+  const livroSalvo = await novoLivro.save();
+  res.status(201).json(livroSalvo);
 });
 
-app.put('/livros/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = livros.findIndex(l => l.id === id);
-
-  if (index !== -1) {
-    livros[index] = { id, ...req.body };
-    res.json(livros[index]);
-  } else {
-    res.status(404).json({ mensagem: "Livro não encontrado" });
-  }
+// PUT
+app.put('/livros/:id', async (req, res) => {
+  const livroAtualizado = await Livro.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  res.json(livroAtualizado);
 });
 
-app.delete('/livros/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  livros = livros.filter(l => l.id !== id);
+// DELETE
+app.delete('/livros/:id', async (req, res) => {
+  await Livro.findByIdAndDelete(req.params.id);
   res.status(204).send();
 });
 
-// Inicia o servidor
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
